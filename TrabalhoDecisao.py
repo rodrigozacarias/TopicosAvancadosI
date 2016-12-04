@@ -33,11 +33,15 @@ def main():
 	nLinhas= 10
 	nColunas = 10
 	
-	vetorPesos=[1, 1, 1, 1, 2, 2, 2, 3, 3, 3]
-	#Peso 1 - Pessoas que vivem no interior
-	#Peso 2 - Pessoas que vivem em cidade grande
-	#Peso 3 - Pessoas que vivem em uma das cidades da pesquisa
+	vetorPesos=[0.05, 0.05, 0.05, 0.05, 0.1, 0.1, 0.15, 0.15, 0.15, 0.15]
+	#Peso 0.05 - Pessoas que vivem no interior
+	#Peso 0.1 - Pessoas que vivem em cidade grande
+	#Peso 0.15 - Pessoas que vivem em uma das cidades da pesquisa
 
+	#indice de concordancia
+	c = 0.55
+	#indice de discordancia
+	d = 0.45
 
 	tabela = geraTabelaPagamento(nLinhas, nColunas)
 		
@@ -52,9 +56,11 @@ def main():
 
 	mediaWindsor(cidades, tabela, nLinhas)
 
-	matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos)
+	mConcordancia = matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos)
 
-	matrizDiscordancia(cidades, tabela, nLinhas, nColunas)
+	mDiscordancia = matrizDiscordancia(cidades, tabela, nLinhas, nColunas)
+
+	calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades)
 
 	print "\n"
 
@@ -158,8 +164,7 @@ def matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos):
 
 	#Laço para alternativa a ser comparada
 	for i in range(nLinhas):
-		linha = []
-		
+		linha = []		
 		#Laço para o criterio a ser comparado
 		for j in range(len(tabela[i])):
 			#Laço para percorrer matriz
@@ -172,6 +177,7 @@ def matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos):
 			#print result
 		mConcordancia.append(linha)
 		print mConcordancia[i], cidades[i]
+	return mConcordancia
 
 def matrizDiscordancia(cidades, tabela, nLinhas, nColunas):
 	print "\nMatriz de Discordância\n"
@@ -206,5 +212,54 @@ def matrizDiscordancia(cidades, tabela, nLinhas, nColunas):
 			linha.append(max(vetorIndices))
 		mDiscordancia.append(linha)
 		print mDiscordancia[i], cidades[i]
+	return mDiscordancia
+
+def calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades):
+	print "\nMatriz de Veto\n"
+
+	matrizVeto = []
+
+	#Preenchendo matriz veto
+	for i in range(nLinhas):
+		linha = []
+		for j in range(len(mConcordancia[i])):
+			if (mConcordancia[i][j] >= c) and (mDiscordancia[i][j] <= d):
+				linha.append(1)
+			else:
+				linha.append(0)
+		matrizVeto.append(linha)
+		print matrizVeto[i], cidades[i]
+
+	matrizSobreclassifica = []
+
+	#identificando as sobreclassificações
+	for i in range(nLinhas):
+		linha = []
+		for j in range(len(matrizVeto[i])):
+			if matrizVeto[i][j] == 1 and i!=j:
+				linha.append(j)
+		matrizSobreclassifica.append(linha)
+		#print matrizSobreclassifica[i]
+
+	kernel = []
+
+	print "\nKernel\n"
+
+	for k in range(nLinhas):
+		achou = False
+		vazio = False
+		for i in range(nLinhas):
+			for j in range(len(matrizSobreclassifica[i])):
+				if matrizSobreclassifica[i][j] == k:
+					achou = True
+				if not matrizSobreclassifica[i]:
+					vazio = True	
+		#print vazio
+		if (achou == False) and (vazio == False):
+			print cidades[k]
+	
+
+
+
 
 main()
