@@ -42,6 +42,12 @@ def main():
 	c = 0.55
 	#indice de discordancia
 	d = 0.45
+	#limite de preferência
+	p = 3.5
+	#limite de indiferença
+	q = 2.0
+	#limite de veto
+	v = 1.5
 
 	tabela = geraTabelaPagamento(nLinhas, nColunas)
 		
@@ -56,11 +62,19 @@ def main():
 
 	mediaWindsor(cidades, tabela, nLinhas)
 
-	mConcordancia = matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos)
+	print "\nMétodo Electre I\n"
 
-	mDiscordancia = matrizDiscordancia(cidades, tabela, nLinhas, nColunas)
+	mConcordanciaI = matrizConcordanciaI(cidades, tabela, nLinhas, nColunas, vetorPesos)
 
-	calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades)
+	mDiscordanciaI = matrizDiscordanciaI(cidades, tabela, nLinhas, nColunas)
+
+	calculaKernel(mConcordanciaI, mDiscordanciaI, c, d, nLinhas, cidades)
+
+	print "\n\nMétodo Electre III\n"
+
+	mConcordanciaIII = matrizConcordanciaIII(cidades, tabela, nLinhas, nColunas, vetorPesos, p, q)
+
+	matrizDisconcordanciaIII(cidades, tabela, nLinhas, nColunas, vetorPesos, p, v)
 
 	print "\n"
 
@@ -153,7 +167,7 @@ def mediaWindsor(cidades, tabela, nLinhas):
 		mediaWindsor = somaTotal/len(linhaOrdenada)
 		print cidades[i], " = ", mediaWindsor
 
-def matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos):
+def matrizConcordanciaI(cidades, tabela, nLinhas, nColunas, vetorPesos):
 	print "\nMatriz de Concordância\n"
 
 	somaPesos = 0
@@ -179,7 +193,7 @@ def matrizConcordancia(cidades, tabela, nLinhas, nColunas, vetorPesos):
 		print mConcordancia[i], cidades[i]
 	return mConcordancia
 
-def matrizDiscordancia(cidades, tabela, nLinhas, nColunas):
+def matrizDiscordanciaI(cidades, tabela, nLinhas, nColunas):
 	print "\nMatriz de Discordância\n"
 
 	#Calculando a diferença entre o maior e menor valor de cada criterio
@@ -214,7 +228,7 @@ def matrizDiscordancia(cidades, tabela, nLinhas, nColunas):
 		print mDiscordancia[i], cidades[i]
 	return mDiscordancia
 
-def calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades):
+def calculaKernel(mConcordanciaI, mDiscordanciaI, c, d, nLinhas, cidades):
 	print "\nMatriz de Veto\n"
 
 	matrizVeto = []
@@ -222,8 +236,8 @@ def calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades):
 	#Preenchendo matriz veto
 	for i in range(nLinhas):
 		linha = []
-		for j in range(len(mConcordancia[i])):
-			if (mConcordancia[i][j] >= c) and (mDiscordancia[i][j] <= d):
+		for j in range(len(mConcordanciaI[i])):
+			if (mConcordanciaI[i][j] >= c) and (mDiscordanciaI[i][j] <= d):
 				linha.append(1)
 			else:
 				linha.append(0)
@@ -259,7 +273,66 @@ def calculaKernel(mConcordancia, mDiscordancia, c, d, nLinhas, cidades):
 			print cidades[k]
 	
 
+def matrizConcordanciaIII(cidades, tabela, nLinhas, nColunas, vetorPesos, p, q):
+	print "\nMatriz de Concordância Global\n"
 
+	somaPesos = 0
+	mConcordancia = []
 
+	for x in range(len(vetorPesos)):
+		somaPesos += vetorPesos[x]
+
+	#Laço para alternativa a ser comparada
+	for i in range(nLinhas):
+		linha = []		
+		#Laço para o criterio a ser comparado
+		for j in range(len(tabela[i])):
+			#Laço para percorrer matriz
+			somatorioW = 0
+			for y in range(nColunas):
+				valor = 0
+				if tabela[i][y] > (tabela[j][y] - q):
+					valor = 1
+				else: 
+					if tabela[i][y] <= (tabela[j][y] - p):
+						valor = 0
+						#print tabela[i][y], tabela[j][y], q, tabela[j][y] - q
+					else: 
+						somatorioW += vetorPesos[y] * ((p-(tabela[i][y]- tabela[j][y]))/p-q)
+				if valor == 1:
+					somatorioW += vetorPesos[y]
+			result = 1.0/somaPesos * somatorioW
+			linha.append(round(result, 2))
+			#print result
+		mConcordancia.append(linha)
+		print mConcordancia[i], cidades[i]
+	return mConcordancia
+
+def matrizDisconcordanciaIII(cidades, tabela, nLinhas, nColunas, vetorPesos, p, v):
+	print "\nMatrizes de Discordância  por Critério\n"
+
+	#Laço para alternativa a ser comparada
+	for i in range(nLinhas):
+		mDiscordancia = []	
+		print "\nEntrevistado",i+1
+		#Laço para o criterio a ser comparado
+		for j in range(len(tabela[i])):
+			linha = []
+			#Laço para percorrer matriz
+			for y in range(nColunas):
+				if tabela[i][y] > (tabela[j][y] - p):
+					linha.append(0)
+				else: 
+					if tabela[i][y] < (tabela[j][y] - v):
+						linha.append(1)
+						#print tabela[i][y], tabela[j][y], q, tabela[j][y] - q
+					else: 
+						result = ((tabela[i][y] - tabela[j][y] - p)/v-p)
+						linha.append(round(result, 2))
+			#print result
+			mDiscordancia.append(linha)
+		
+		for x in range(len(mDiscordancia[j])):
+			print mDiscordancia[x], cidades[x]
 
 main()
